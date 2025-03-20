@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meditime - Meditation Timer</title>
+    <link rel="stylesheet" href="src/css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <h1>Meditime</h1>
+            <div class="theme-toggle">
+                <i class="fas fa-moon"></i>
+            </div>
+        </header>
+        
+        <main>
+            <div class="dashboard" id="dashboard">
+                <div class="quick-start">
+                    <button id="quick-start-btn" class="btn primary-btn">
+                        <i class="fas fa-play"></i> Quick Start
+                    </button>
+                </div>
+                
+                <div class="stats-overview">
+                    <div class="stat-item">
+                        <h3>Total Minutes</h3>
+                        <p id="total-minutes">0</p>
+                    </div>
+                    <div class="stat-item">
+                        <h3>Current Streak</h3>
+                        <p id="current-streak">0 days</p>
+                    </div>
+                    <div class="stat-item">
+                        <h3>Longest Streak</h3>
+                        <p id="longest-streak">0 days</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="timer-container" id="timer-container">
+                <div class="timer-settings">
+                    <div class="duration-setting">
+                        <h3>Session Duration</h3>
+                        <div class="duration-controls">
+                            <input type="range" id="duration-slider" min="1" max="120" value="10">
+                            <div class="duration-display">
+                                <input type="number" id="duration-input" min="1" max="120" value="10">
+                                <span>minutes</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="interval-setting">
+                        <h3>Interval Chimes</h3>
+                        <select id="interval-select">
+                            <option value="0">None</option>
+                            <option value="5">Every 5 minutes</option>
+                            <option value="10">Every 10 minutes</option>
+                            <option value="15">Every 15 minutes</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="sounds-section">
+                    <h3>Background Sounds</h3>
+                    <div class="sound-grid" id="sound-grid">
+                        <div class="sound-item" data-sound="rain">
+                            <div class="sound-icon">
+                                <i class="fas fa-cloud-rain"></i>
+                            </div>
+                            <span>Rain</span>
+                            <input type="range" class="volume-slider" min="0" max="100" value="70">
+                        </div>
+                        <div class="sound-item" data-sound="ocean">
+                            <div class="sound-icon">
+                                <i class="fas fa-water"></i>
+                            </div>
+                            <span>Ocean</span>
+                            <input type="range" class="volume-slider" min="0" max="100" value="70">
+                        </div>
+                        <div class="sound-item" data-sound="forest">
+                            <div class="sound-icon">
+                                <i class="fas fa-tree"></i>
+                            </div>
+                            <span>Forest</span>
+                            <input type="range" class="volume-slider" min="0" max="100" value="70">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="meditation-timer">
+                    <div class="timer-display">
+                        <span id="minutes">10</span>:<span id="seconds">00</span>
+                    </div>
+                    <div class="timer-controls">
+                        <button id="start-btn" class="btn primary-btn">
+                            <i class="fas fa-play"></i> Start
+                        </button>
+                        <button id="pause-btn" class="btn secondary-btn" disabled>
+                            <i class="fas fa-pause"></i> Pause
+                        </button>
+                        <button id="stop-btn" class="btn danger-btn" disabled>
+                            <i class="fas fa-stop"></i> Stop
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="calendar-view" id="calendar-view">
+                <h2>Meditation Calendar</h2>
+                <div class="month-selector">
+                    <button id="prev-month-btn" class="btn icon-btn">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <h3 id="current-month-display">March 2025</h3>
+                    <button id="next-month-btn" class="btn icon-btn">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+                <div class="calendar-grid" id="calendar-grid">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+            </div>
+        </main>
+        
+        <nav>
+            <div class="nav-item active" data-target="dashboard">
+                <i class="fas fa-home"></i>
+                <span>Home</span>
+            </div>
+            <div class="nav-item" data-target="timer-container">
+                <i class="fas fa-clock"></i>
+                <span>Timer</span>
+            </div>
+            <div class="nav-item" data-target="calendar-view">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Progress</span>
+            </div>
+        </nav>
+    </div>
+
+    <script src="src/js/app.js"></script>
+    <script src="src/js/timer.js"></script>
+    <script src="src/js/sounds.js"></script>
+    <script src="src/js/calendar.js"></script>
+    <script src="src/js/storage.js"></script>
+</body>
+</html>
