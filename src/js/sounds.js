@@ -9,8 +9,8 @@ const audioElements = {};
 // DOM Elements
 let soundItems;
 
-// Flag to track if user has interacted
-let userHasInteracted = false;
+// Flag to track if user has interacted - making it available globally
+window.userHasInteracted = false;
 
 // Initialize sounds functionality
 document.addEventListener('DOMContentLoaded', () => {
@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function initializeSounds() {
     // Mark user interaction on any click in the document
     document.addEventListener('click', function() {
-        userHasInteracted = true;
+        window.userHasInteracted = true;
         console.log("User interaction detected");
     }, { once: true });
     
@@ -94,9 +94,15 @@ function createAudioElements() {
     sounds.forEach(sound => {
         try {
             console.log(`Trying to load sound: ${sound.name}`);
-            const audio = new Audio(`src/assets/sounds/${sound.name}.mp3`);
+            
+            // Create a new Audio element with explicit path
+            const audio = new Audio();
+            audio.src = `src/assets/sounds/${sound.name}.mp3`;
             audio.preload = 'auto';
             audio.loop = sound.loop;
+            
+            // Force load the audio file
+            audio.load();
             
             // Store the audio element
             audioElements[sound.name] = audio;
@@ -109,6 +115,11 @@ function createAudioElements() {
             audio.addEventListener('error', (e) => {
                 console.error(`Error loading sound ${sound.name}:`, e);
                 console.error(`Could not load src/assets/sounds/${sound.name}.mp3`);
+                
+                // Try to reload with a timestamp to avoid cache issues
+                const timestamp = new Date().getTime();
+                audio.src = `src/assets/sounds/${sound.name}.mp3?t=${timestamp}`;
+                audio.load();
             });
         } catch (e) {
             console.error(`Could not create audio element for ${sound.name}:`, e);
@@ -121,7 +132,7 @@ function createAudioElements() {
  */
 function checkAutoplaySupport() {
     // Create a temporary audio element to test autoplay
-    const testAudio = new Audio('src/assets/sounds/rain.mp3');
+    const testAudio = new Audio('src/assets/sounds/ocean.mp3');
     testAudio.volume = 0.001; // Nearly silent
     
     const playPromise = testAudio.play();
@@ -131,7 +142,7 @@ function checkAutoplaySupport() {
             .then(() => {
                 console.log("Autoplay is supported");
                 testAudio.pause();
-                userHasInteracted = true;
+                window.userHasInteracted = true;
             })
             .catch(error => {
                 console.log("Autoplay is not supported, will need user interaction:", error);
@@ -151,17 +162,31 @@ function playSound(soundName, volume) {
     
     if (!audioElements[soundName]) {
         console.error(`Sound ${soundName} not found`);
-        return;
+        
+        // Try to recreate the audio element for rain as a fallback
+        if (soundName === 'rain') {
+            console.log("Attempting to recreate rain audio element");
+            audioElements[soundName] = new Audio(`src/assets/sounds/${soundName}.mp3?t=${new Date().getTime()}`);
+            audioElements[soundName].loop = true;
+            audioElements[soundName].load();
+        }
+        
+        if (!audioElements[soundName]) {
+            return;
+        }
     }
     
     try {
+        // Force stop first to ensure clean playback
+        try {
+            audioElements[soundName].pause();
+            audioElements[soundName].currentTime = 0;
+        } catch (e) {
+            console.warn(`Could not reset ${soundName}:`, e);
+        }
+        
         // Set volume
         audioElements[soundName].volume = volume;
-        
-        // Reset time if it was played before
-        if (audioElements[soundName].currentTime > 0) {
-            audioElements[soundName].currentTime = 0;
-        }
         
         // Play the sound
         const playPromise = audioElements[soundName].play();
@@ -173,14 +198,50 @@ function playSound(soundName, volume) {
                 console.error(`Error playing ${soundName}:`, error);
                 
                 // If autoplay was prevented, show a button to enable sounds
-                if (!userHasInteracted || error.name === 'NotAllowedError') {
+                if (!window.userHasInteracted || error.name === 'NotAllowedError') {
                     showPlayButton();
+                } else if (soundName === 'rain') {
+                    // Try to reload and play rain specifically
+                    reloadAndPlayRain(volume);
                 }
             });
         }
     } catch (e) {
         console.error(`Error playing ${soundName}:`, e);
-        showPlayButton();
+        if (soundName === 'rain') {
+            reloadAndPlayRain(volume);
+        } else {
+            showPlayButton();
+        }
+    }
+}
+
+/**
+ * Reload and play rain sound as a fallback
+ * @param {number} volume - Volume level (0-1)
+ */
+function reloadAndPlayRain(volume) {
+    console.log("Using fallback method to play rain sound");
+    try {
+        // Create a new audio element for rain
+        const newRainAudio = new Audio(`src/assets/sounds/rain.mp3?t=${new Date().getTime()}`);
+        newRainAudio.loop = true;
+        newRainAudio.volume = volume;
+        
+        // Replace the existing audio element
+        audioElements['rain'] = newRainAudio;
+        
+        // Play the sound
+        newRainAudio.play()
+            .then(() => {
+                console.log("Rain sound playing successfully with fallback method");
+            })
+            .catch(error => {
+                console.error("Fallback rain play failed:", error);
+                showPlayButton();
+            });
+    } catch (e) {
+        console.error("Fallback rain play error:", e);
     }
 }
 
@@ -202,35 +263,60 @@ function showPlayButton() {
     btn.style.zIndex = '9999';
     
     btn.addEventListener('click', () => {
-        userHasInteracted = true;
+        window.userHasInteracted = true;
         
-        // Try to play all active sounds
-        soundItems.forEach(item => {
-            if (item.classList.contains('active')) {
-                const soundName = item.getAttribute('data-sound');
-                const volume = item.querySelector('.volume-slider').value / 100;
-                playSound(soundName, volume);
-            }
-        });
-        
-        // Remove button
-        document.body.removeChild(btn);
+        // Try to play a test sound
+        const testSound = new Audio('src/assets/sounds/rain.mp3');
+        testSound.volume = 0.1;
+        testSound.play()
+            .then(() => {
+                console.log("Test sound played successfully");
+                testSound.pause();
+                
+                // Start all currently active sounds
+                startSelectedSounds();
+                
+                // Remove the button
+                document.body.removeChild(btn);
+            })
+            .catch(error => {
+                console.error("Error playing test sound:", error);
+                alert("There was an issue enabling sounds. Please try again.");
+            });
     });
     
     document.body.appendChild(btn);
+    
+    // Auto-remove after 10 seconds if not clicked
+    setTimeout(() => {
+        if (document.getElementById('enable-sound-btn')) {
+            btn.style.opacity = '0.6';
+            
+            // Fade out after another 5 seconds
+            setTimeout(() => {
+                if (document.getElementById('enable-sound-btn')) {
+                    document.body.removeChild(btn);
+                }
+            }, 5000);
+        }
+    }, 10000);
 }
 
 /**
  * Stop a specific sound
+ * @param {string} soundName - Name of the sound to stop
  */
 function stopSound(soundName) {
-    if (audioElements[soundName]) {
-        try {
-            audioElements[soundName].pause();
-            audioElements[soundName].currentTime = 0;
-        } catch (e) {
-            console.error(`Error stopping ${soundName}:`, e);
-        }
+    if (!audioElements[soundName]) {
+        return;
+    }
+    
+    try {
+        audioElements[soundName].pause();
+        audioElements[soundName].currentTime = 0;
+        console.log(`${soundName} stopped`);
+    } catch (e) {
+        console.error(`Error stopping ${soundName}:`, e);
     }
 }
 
@@ -241,8 +327,8 @@ function startSelectedSounds() {
     soundItems.forEach(item => {
         if (item.classList.contains('active')) {
             const soundName = item.getAttribute('data-sound');
-            const volume = item.querySelector('.volume-slider').value / 100;
-            playSound(soundName, volume);
+            const volumeSlider = item.querySelector('.volume-slider');
+            playSound(soundName, volumeSlider.value / 100);
         }
     });
 }
@@ -255,6 +341,7 @@ function pauseAllSounds() {
         try {
             if (!audioElements[soundName].paused) {
                 audioElements[soundName].pause();
+                console.log(`${soundName} paused`);
             }
         } catch (e) {
             console.error(`Error pausing ${soundName}:`, e);
@@ -269,6 +356,11 @@ function stopAllSounds() {
     Object.keys(audioElements).forEach(soundName => {
         stopSound(soundName);
     });
+    
+    // Reset UI
+    soundItems.forEach(item => {
+        item.classList.remove('active');
+    });
 }
 
 /**
@@ -276,59 +368,76 @@ function stopAllSounds() {
  * @param {Function} callback - Function to call after fade out completes
  */
 function fadeOutSounds(callback) {
-    const activeSounds = Object.keys(audioElements).filter(soundName => 
-        !audioElements[soundName].paused
-    );
+    const activeSounds = [];
+    const originalVolumes = {};
     
+    // Identify which sounds are currently playing
+    Object.keys(audioElements).forEach(soundName => {
+        if (audioElements[soundName] && !audioElements[soundName].paused) {
+            activeSounds.push(soundName);
+            originalVolumes[soundName] = audioElements[soundName].volume;
+        }
+    });
+    
+    // If no sounds are playing, just call callback
     if (activeSounds.length === 0) {
         if (callback) callback();
         return;
     }
     
-    let fadeSteps = 20;
-    const fadeInterval = 50; // ms
-    const originalVolumes = {};
+    // Create fade out animation
+    const fadeSteps = 20;
+    let currentStep = 0;
     
-    // Store original volumes
-    activeSounds.forEach(soundName => {
-        originalVolumes[soundName] = audioElements[soundName].volume;
-    });
-    
-    const fadeIntervalId = setInterval(() => {
-        fadeSteps--;
+    const fadeInterval = setInterval(() => {
+        currentStep++;
         
-        if (fadeSteps <= 0) {
-            clearInterval(fadeIntervalId);
+        // Calculate new volume
+        const fadeProgress = currentStep / fadeSteps;
+        
+        // Adjust volume for each sound
+        activeSounds.forEach(soundName => {
+            try {
+                const newVolume = originalVolumes[soundName] * (1 - fadeProgress);
+                audioElements[soundName].volume = Math.max(0, newVolume);
+            } catch (e) {
+                console.error(`Error fading ${soundName}:`, e);
+            }
+        });
+        
+        // Check if fade is complete
+        if (currentStep >= fadeSteps) {
+            clearInterval(fadeInterval);
             
             // Stop all sounds
             activeSounds.forEach(soundName => {
-                audioElements[soundName].pause();
-                audioElements[soundName].currentTime = 0;
-                
-                // Restore original volume for next time
-                audioElements[soundName].volume = originalVolumes[soundName];
+                try {
+                    audioElements[soundName].pause();
+                    audioElements[soundName].currentTime = 0;
+                    // Restore original volume
+                    audioElements[soundName].volume = originalVolumes[soundName];
+                } catch (e) {
+                    console.error(`Error stopping ${soundName} after fade:`, e);
+                }
             });
             
+            // Reset UI
+            soundItems.forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // Call the callback
             if (callback) callback();
-            return;
         }
-        
-        // Reduce volume gradually
-        activeSounds.forEach(soundName => {
-            const newVolume = originalVolumes[soundName] * (fadeSteps / 20);
-            audioElements[soundName].volume = newVolume;
-        });
-    }, fadeInterval);
+    }, 50); // 50ms intervals for smooth fade
 }
 
 /**
  * Play the interval chime
  */
 function playIntervalChime() {
-    console.log("Interval chime triggered");
-    // Visual feedback for interval chime (since sound files aren't present)
+    // Visual indicator for interval chime (since we don't have the actual sound file)
     const timerDisplay = document.querySelector('.timer-display');
-    
     if (timerDisplay) {
         timerDisplay.classList.add('blink');
         setTimeout(() => {
@@ -341,32 +450,31 @@ function playIntervalChime() {
  * Play the end chime
  */
 function playEndChime() {
-    console.log("End chime triggered");
-    // Visual feedback for end chime (since sound files aren't present)
+    // Visual indicator for end chime (since we don't have the actual sound file)
     const timerDisplay = document.querySelector('.timer-display');
-    
     if (timerDisplay) {
-        timerDisplay.classList.add('blink');
+        timerDisplay.classList.add('blink-end');
         setTimeout(() => {
-            timerDisplay.classList.remove('blink');
-        }, 1000);
+            timerDisplay.classList.remove('blink-end');
+        }, 2000);
     }
 }
 
 /**
  * Get active sound settings for storage
+ * @returns {Object} Active sound settings
  */
 function getActiveSoundSettings() {
     const settings = {};
     
     soundItems.forEach(item => {
         const soundName = item.getAttribute('data-sound');
+        const volumeSlider = item.querySelector('.volume-slider');
         const isActive = item.classList.contains('active');
-        const volume = parseInt(item.querySelector('.volume-slider').value);
         
         settings[soundName] = {
             active: isActive,
-            volume: volume
+            volume: volumeSlider ? volumeSlider.value / 100 : 0.7
         };
     });
     

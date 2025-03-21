@@ -361,6 +361,76 @@ select {
     background-color: rgba(0, 0, 0, 0.7); /* Darker overlay for dark theme */
 }
 
+/* J Mode Toggle Styles */
+.j-mode-toggle-container {
+    display: flex;
+    justify-content: center;
+    margin: 1rem auto;
+    position: relative;
+    z-index: 20;
+}
+
+.j-mode-toggle {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    background-color: var(--card-background);
+    border-radius: 24px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--border-color);
+}
+
+.j-mode-toggle span:first-child {
+    margin-right: 10px;
+    color: var(--text-color);
+    font-size: 0.9rem;
+}
+
+.j-mode-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.j-mode-toggle .slider {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 22px;
+    background-color: #ccc;
+    transition: .4s;
+}
+
+.j-mode-toggle .slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 4px;
+    bottom: 3px;
+    background-color: white;
+    transition: .4s;
+}
+
+.j-mode-toggle input:checked + .slider {
+    background-color: var(--primary-color);
+}
+
+.j-mode-toggle input:checked + .slider:before {
+    transform: translateX(16px);
+}
+
+.j-mode-toggle .slider.round {
+    border-radius: 34px;
+}
+
+.j-mode-toggle .slider.round:before {
+    border-radius: 50%;
+}
+
 /* Button styles */
 .btn {
     padding: 0.75rem 1.5rem;
