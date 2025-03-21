@@ -79,15 +79,51 @@ main {
 }
 
 .dashboard, .timer-container, .calendar-view {
-    background-color: var(--card-background);
-    border-radius: 10px;
-    padding: 1.5rem;
-    box-shadow: var(--shadow);
     display: none;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 1rem;
 }
 
-.dashboard.active, .timer-container.active, .calendar-view.active {
+.dashboard, .calendar-view {
+    background-color: var(--card-background);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+}
+
+.timer-container {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+    background-color: var(--background-color);
+    border-radius: 16px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    padding: 2rem;
+    width: 90%;
+    max-width: 700px;
+    margin: 0;
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dark-theme .timer-container {
+    background-color: rgba(30, 30, 30, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.dashboard.active, .calendar-view.active {
     display: block;
+}
+
+.timer-container.active {
+    display: flex;
 }
 
 /* Dashboard styles */
@@ -286,6 +322,43 @@ select {
 
 .calendar-day.other-month {
     opacity: 0.3;
+}
+
+/* Video background styles */
+.video-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    overflow: hidden;
+}
+
+#background-video {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    min-width: 100%;
+    min-height: 100%;
+    width: auto;
+    height: auto;
+    transform: translateX(-50%) translateY(-50%);
+    object-fit: cover;
+    opacity: 0.8;
+}
+
+.video-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent overlay */
+}
+
+.dark-theme .video-overlay {
+    background-color: rgba(0, 0, 0, 0.7); /* Darker overlay for dark theme */
 }
 
 /* Button styles */

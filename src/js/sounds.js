@@ -22,6 +22,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Log audio status to help with debugging
     console.log("Audio initialization complete. Available sounds:", Object.keys(audioElements));
+    
+    // Ensure the play button is shown if needed
+    setTimeout(checkAutoplaySupport, 1000);
 });
 
 /**
@@ -114,6 +117,31 @@ function createAudioElements() {
 }
 
 /**
+ * Check if autoplay is supported and show button if not
+ */
+function checkAutoplaySupport() {
+    // Create a temporary audio element to test autoplay
+    const testAudio = new Audio('src/assets/sounds/rain.mp3');
+    testAudio.volume = 0.001; // Nearly silent
+    
+    const playPromise = testAudio.play();
+    
+    if (playPromise !== undefined) {
+        playPromise
+            .then(() => {
+                console.log("Autoplay is supported");
+                testAudio.pause();
+                userHasInteracted = true;
+            })
+            .catch(error => {
+                console.log("Autoplay is not supported, will need user interaction:", error);
+                // Show the play button to enable sounds
+                showPlayButton();
+            });
+    }
+}
+
+/**
  * Play a sound with the given volume
  * @param {string} soundName - Name of the sound to play
  * @param {number} volume - Volume (0-1)
@@ -169,7 +197,7 @@ function showPlayButton() {
     btn.textContent = 'Enable Sounds';
     btn.className = 'btn primary-btn';
     btn.style.position = 'fixed';
-    btn.style.top = '10px';
+    btn.style.top = '60px';
     btn.style.right = '10px';
     btn.style.zIndex = '9999';
     
@@ -248,8 +276,8 @@ function stopAllSounds() {
  * @param {Function} callback - Function to call after fade out completes
  */
 function fadeOutSounds(callback) {
-    const activeSounds = Object.keys(audioElements).filter(
-        soundName => audioElements[soundName] && !audioElements[soundName].paused
+    const activeSounds = Object.keys(audioElements).filter(soundName => 
+        !audioElements[soundName].paused
     );
     
     if (activeSounds.length === 0) {
@@ -257,39 +285,72 @@ function fadeOutSounds(callback) {
         return;
     }
     
-    // Store initial volumes
-    const initialVolumes = {};
+    let fadeSteps = 20;
+    const fadeInterval = 50; // ms
+    const originalVolumes = {};
+    
+    // Store original volumes
     activeSounds.forEach(soundName => {
-        initialVolumes[soundName] = audioElements[soundName].volume;
+        originalVolumes[soundName] = audioElements[soundName].volume;
     });
     
-    // Duration of fade out in milliseconds
-    const fadeDuration = 2000;
-    const fadeSteps = 20;
-    const fadeInterval = fadeDuration / fadeSteps;
-    
-    let step = 0;
-    const fadeTimer = setInterval(() => {
-        step++;
+    const fadeIntervalId = setInterval(() => {
+        fadeSteps--;
         
-        activeSounds.forEach(soundName => {
-            const newVolume = initialVolumes[soundName] * (1 - step / fadeSteps);
-            audioElements[soundName].volume = Math.max(0, newVolume);
-        });
-        
-        if (step >= fadeSteps) {
-            clearInterval(fadeTimer);
+        if (fadeSteps <= 0) {
+            clearInterval(fadeIntervalId);
             
-            // Stop all sounds after fade out
+            // Stop all sounds
             activeSounds.forEach(soundName => {
-                stopSound(soundName);
-                // Reset volumes to initial values
-                audioElements[soundName].volume = initialVolumes[soundName];
+                audioElements[soundName].pause();
+                audioElements[soundName].currentTime = 0;
+                
+                // Restore original volume for next time
+                audioElements[soundName].volume = originalVolumes[soundName];
             });
             
             if (callback) callback();
+            return;
         }
+        
+        // Reduce volume gradually
+        activeSounds.forEach(soundName => {
+            const newVolume = originalVolumes[soundName] * (fadeSteps / 20);
+            audioElements[soundName].volume = newVolume;
+        });
     }, fadeInterval);
+}
+
+/**
+ * Play the interval chime
+ */
+function playIntervalChime() {
+    console.log("Interval chime triggered");
+    // Visual feedback for interval chime (since sound files aren't present)
+    const timerDisplay = document.querySelector('.timer-display');
+    
+    if (timerDisplay) {
+        timerDisplay.classList.add('blink');
+        setTimeout(() => {
+            timerDisplay.classList.remove('blink');
+        }, 1000);
+    }
+}
+
+/**
+ * Play the end chime
+ */
+function playEndChime() {
+    console.log("End chime triggered");
+    // Visual feedback for end chime (since sound files aren't present)
+    const timerDisplay = document.querySelector('.timer-display');
+    
+    if (timerDisplay) {
+        timerDisplay.classList.add('blink');
+        setTimeout(() => {
+            timerDisplay.classList.remove('blink');
+        }, 1000);
+    }
 }
 
 /**
@@ -300,43 +361,14 @@ function getActiveSoundSettings() {
     
     soundItems.forEach(item => {
         const soundName = item.getAttribute('data-sound');
-        const volumeSlider = item.querySelector('.volume-slider');
+        const isActive = item.classList.contains('active');
+        const volume = parseInt(item.querySelector('.volume-slider').value);
         
         settings[soundName] = {
-            active: item.classList.contains('active'),
-            volume: parseInt(volumeSlider.value)
+            active: isActive,
+            volume: volume
         };
     });
     
     return settings;
-}
-
-/**
- * Play interval chime sound
- */
-function playIntervalChime() {
-    console.log("Interval chime requested - no chime sound file available");
-    // Alert the user visually since we don't have the sound file
-    const timerDisplay = document.querySelector('.timer-display');
-    if (timerDisplay) {
-        timerDisplay.classList.add('blink');
-        setTimeout(() => {
-            timerDisplay.classList.remove('blink');
-        }, 1000);
-    }
-}
-
-/**
- * Play end of session chime
- */
-function playEndChime() {
-    console.log("End chime requested - no chime sound file available");
-    // Alert the user visually since we don't have the sound file
-    const timerDisplay = document.querySelector('.timer-display');
-    if (timerDisplay) {
-        timerDisplay.classList.add('blink');
-        setTimeout(() => {
-            timerDisplay.classList.remove('blink');
-        }, 1000);
-    }
 }
